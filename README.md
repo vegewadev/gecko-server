@@ -47,10 +47,6 @@ The project can be configured using environment variables:
 
 - `CONNECTION_STRING`: The connection string for the MongoDB instance (required).
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
 # Using Docker (amd64 only)
 
 You can run this project using Docker by pulling the pre-built image from GHCR:
