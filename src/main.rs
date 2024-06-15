@@ -5,26 +5,34 @@ mod routes;
 use database::database::Database;
 use dotenv::dotenv;
 use mongodb::Client;
-use rocket_cors::{AllowedOrigins, Cors, CorsOptions};
+use rocket::fairing::{Fairing, Info, Kind};
+use rocket::http::Header;
+use rocket::{Request, Response};
 
 pub struct MongoDatabaseState {
     pub client: Client,
 }
 
-fn make_cors() -> Cors {
-    let allowed_origins: rocket_cors::AllOrSome<rocket_cors::Origins> = AllowedOrigins::all();
-    CorsOptions {
-        allowed_origins,
-        allowed_methods: vec![rocket::http::Method::Get]
-            .into_iter()
-            .map(From::from)
-            .collect(),
-        allowed_headers: rocket_cors::AllowedHeaders::all(),
-        allow_credentials: true,
-        ..Default::default()
+pub struct Cors;
+
+#[rocket::async_trait]
+impl Fairing for Cors {
+    fn info(&self) -> Info {
+        Info {
+            name: "Cross-Origin-Resource-Sharing Fairing",
+            kind: Kind::Response,
+        }
     }
-    .to_cors()
-    .expect("Error creating CORS middleware")
+
+    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+        response.set_header(Header::new(
+            "Access-Control-Allow-Methods",
+            "POST, PATCH, PUT, DELETE, HEAD, OPTIONS, GET",
+        ));
+        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+    }
 }
 
 #[rocket::main]
@@ -41,7 +49,7 @@ async fn main() -> Result<(), rocket::Error> {
                 let db_client = MongoDatabaseState { client: client };
 
                 let _rocket: rocket::Rocket<rocket::Ignite> = rocket::build()
-                    .attach(make_cors())
+                    .attach(Cors)
                     .mount(
                         "/environmental_data",
                         routes![routes::environmental_information::get_environmental_information],
