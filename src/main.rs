@@ -5,9 +5,26 @@ mod routes;
 use database::database::Database;
 use dotenv::dotenv;
 use mongodb::Client;
+use rocket_cors::{AllowedOrigins, Cors, CorsOptions};
 
 pub struct MongoDatabaseState {
     pub client: Client,
+}
+
+fn make_cors() -> Cors {
+    let allowed_origins: rocket_cors::AllOrSome<rocket_cors::Origins> = AllowedOrigins::all();
+    CorsOptions {
+        allowed_origins,
+        allowed_methods: vec![rocket::http::Method::Get]
+            .into_iter()
+            .map(From::from)
+            .collect(),
+        allowed_headers: rocket_cors::AllowedHeaders::all(),
+        allow_credentials: true,
+        ..Default::default()
+    }
+    .to_cors()
+    .expect("Error creating CORS middleware")
 }
 
 #[rocket::main]
@@ -24,6 +41,7 @@ async fn main() -> Result<(), rocket::Error> {
                 let db_client = MongoDatabaseState { client: client };
 
                 let _rocket: rocket::Rocket<rocket::Ignite> = rocket::build()
+                    .attach(make_cors())
                     .mount(
                         "/environmental_data",
                         routes![routes::environmental_information::get_environmental_information],
